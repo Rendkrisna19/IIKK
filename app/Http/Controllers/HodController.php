@@ -66,11 +66,12 @@ class HodController extends Controller
     /**
      * Proses Approve atau Reject Izin
      */
-    public function updateStatus(Request $request, Permit $permit)
+   public function updateStatus(Request $request, Permit $permit)
     {
-        // 1. Validasi Input
+        // 1. Validasi Input (Tambahkan validasi untuk hod_message)
         $request->validate([
-            'status' => 'required|in:approved,rejected'
+            'status' => 'required|in:approved,rejected',
+            'hod_message' => 'nullable|string|max:500' // Maksimal 500 karakter biar aman
         ]);
 
         // 2. Keamanan: Pastikan HOD hanya mengurus karyawan departemennya sendiri
@@ -78,17 +79,18 @@ class HodController extends Controller
             return abort(403, 'Akses Ditolak. Karyawan beda departemen.');
         }
 
-        // 3. Update Data
+        // 3. Update Data (Tambahkan hod_message)
         $permit->update([
             'status' => $request->status,
             'approved_by' => Auth::id(), // ID HOD yang login
             'approved_at' => now(),      // Waktu saat ini
+            'hod_message' => $request->hod_message, // Simpan pesan/revisi dari HOD
         ]);
 
         // 4. Pesan Feedback
         $message = $request->status == 'approved' 
             ? 'Izin disetujui. QR Code telah diterbitkan untuk karyawan.' 
-            : 'Permohonan izin ditolak.';
+            : 'Permohonan izin ditolak. Pesan telah dikirim ke karyawan.';
 
         return redirect()->back()->with('success', $message);
     }

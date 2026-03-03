@@ -14,8 +14,26 @@ class Permit extends Model
     // Ini penting agar Permit::create() di controller tidak error.
     protected $guarded = ['id'];
 
+    protected $fillable = [
+        'uuid',
+        'unique_code', // Tambahan baru
+        'user_id',
+        'permit_type',
+        'reason',
+        'target_time_out', // Tambahan baru
+        'target_time_in',  // Tambahan baru
+        'status',
+        'approved_by',
+        'approved_at',
+        'time_out',
+        'time_in',
+        'late_minutes', // Tambahan baru
+        'security_out_id',
+        'security_in_id',
+        'permit_date',  
+        'hod_message',     // (Pastikan ini juga ada untuk fitur pesan HOD tadi)   // <--- Tambahkan ini!
+    ];
     // --- RELASI (HUBUNGAN ANTAR TABEL) ---
-
     // Izin ini milik siapa? (Karyawan)
     public function user()
     {

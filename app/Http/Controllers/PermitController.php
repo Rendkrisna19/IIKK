@@ -20,6 +20,7 @@ class PermitController extends Controller
                         ->latest()
                         ->paginate(10);
 
+        // Path folder sekarang: employee/permits
         return view('employee.permits.index', compact('permits'));
     }
 
@@ -28,33 +29,49 @@ class PermitController extends Controller
      */
     public function create()
     {
+        // Path folder sekarang: employee/permits
         return view('employee.permits.create');
     }
 
     /**
      * Proses Simpan Data Izin ke Database
      */
-    public function store(Request $request)
+   public function store(Request $request)
     {
         $request->validate([
+            'permit_date' => 'required|date', // Tambahkan validasi tanggal
             'permit_type' => 'required|in:tugas,pribadi',
             'reason' => 'required|string|max:255',
-        ], [
-            'permit_type.required' => 'Wajib memilih jenis keperluan (Tugas/Pribadi).',
-            'reason.required' => 'Alasan izin harus diisi detail.',
+            'target_time_out' => 'required',
+            'target_time_in' => 'required_if:permit_type,pribadi', 
         ]);
-
-        // Create dengan UUID otomatis (dihandle oleh Model atau fallback disini)
+        $user = Auth::user();
+        $todayCount = Permit::whereDate('created_at', now()->toDateString())->count() + 1;
+        $sequence = str_pad($todayCount, 3, '0', STR_PAD_LEFT); 
+        $dateStr = now()->format('dmY'); 
+        $userRequestCount = Permit::where('user_id', $user->id)->count() + 1; 
+        
+        $deptName = $user->department->name ?? 'NA';
+        $words = explode(' ', $deptName);
+        $deptAcronym = '';
+        foreach ($words as $w) { $deptAcronym .= strtoupper($w[0]); }
+        if(strlen($deptAcronym) < 2) {
+            $deptAcronym = strtoupper(substr($deptName, 0, 3)); 
+        }
+        $uniqueCode = "{$sequence}/{$dateStr}/{$userRequestCount}/{$deptAcronym}";
         Permit::create([
-            'uuid' => (string) Str::uuid(), // KITA PAKSA ISI DISINI BIAR AMAN
-            'user_id' => Auth::id(),
+            'uuid' => (string) Str::uuid(),
+            'unique_code' => $uniqueCode,
+            'user_id' => $user->id,
+            'permit_date' => $request->permit_date, // Menyimpan tanggal yang dipilih
             'permit_type' => $request->permit_type,
             'reason' => $request->reason,
+            'target_time_out' => $request->target_time_out,
+            'target_time_in' => $request->permit_type == 'pribadi' ? $request->target_time_in : null,
             'status' => 'pending',
         ]);
-
         return redirect()->route('employee.my-permits')
-            ->with('success', 'Permohonan berhasil dikirim! Menunggu persetujuan Atasan/HOD.');
+            ->with('success', 'Permohonan berhasil dikirim!');
     }
 
     /**
@@ -62,39 +79,104 @@ class PermitController extends Controller
      */
     public function print(Permit $permit)
     {
-        // 1. Validasi Keamanan: Hanya milik sendiri & Status Approved
+        // 1. Validasi Keamanan
         if($permit->user_id != auth()->id() || $permit->status != 'approved') {
             return abort(403, 'Anda tidak memiliki akses mencetak dokumen ini.');
         }
 
-        // 2. SELF-HEALING: Jika UUID Kosong (Data Lama), Isi Otomatis
+        // 2. SELF-HEALING UUID (jika data lama kosong)
         if (empty($permit->uuid)) {
             $permit->uuid = (string) Str::uuid();
             $permit->save();
-            $permit->refresh(); // Refresh data model
+            $permit->refresh(); 
         }
 
-        // 3. Pastikan UUID benar-benar string sebelum masuk QR Code
         $qrContent = (string) $permit->uuid;
 
         if (empty($qrContent)) {
             return back()->with('error', 'Gagal generate QR Code: UUID tidak valid.');
         }
 
-        // 4. Generate QR Code
+        // 3. Generate QR Code
         try {
             $qrcode = base64_encode(QrCode::format('svg')->size(100)->generate($qrContent));
         } catch (\Exception $e) {
             return back()->with('error', 'Terjadi kesalahan saat membuat QR Code.');
         }
 
-        // 5. Generate PDF
+        // 4. Generate & Stream PDF
+        // Path folder sekarang: employee/permits
         $pdf = Pdf::loadView('employee.permits.pdf', compact('permit', 'qrcode'));
         $pdf->setPaper('A4', 'portrait');
         
-        // Nama file PDF: IKK_NIK_TANGGAL.pdf
         $fileName = 'IKK_' . ($permit->user->nik ?? 'NONIK') . '_' . date('Ymd') . '.pdf';
         
         return $pdf->stream($fileName);
+    }
+
+    /**
+     * Menampilkan halaman form edit
+     */
+   /**
+     * Menampilkan halaman form edit
+     */
+    public function edit($id)
+    {
+        $permit = Permit::where('id', $id)
+            ->where('user_id', auth()->id())
+            ->where('status', 'pending')
+            ->firstOrFail();
+
+        // Menggunakan folder 'permits' (plural) sesuai dengan nama foldermu
+        return view('employee.permits.edit', compact('permit'));
+    }
+
+    /**
+     * Memproses penyimpanan update data ke database
+     */
+    public function update(Request $request, $id)
+    {
+        // 1. Cari data izin yang masih pending milik user tersebut
+        $permit = Permit::where('id', $id)
+            ->where('user_id', auth()->id())
+            ->where('status', 'pending')
+            ->firstOrFail();
+
+        // 2. Validasi input (TANGGAL SUDAH DITAMBAHKAN DI SINI)
+        $request->validate([
+            'permit_date'     => 'required|date',
+            'permit_type'     => 'required|in:tugas,pribadi',
+            'reason'          => 'required|string|max:255',
+            'target_time_out' => 'required',
+            'target_time_in'  => 'required_if:permit_type,pribadi', 
+        ]);
+
+        // 3. Update datanya ke database
+        $permit->update([
+            'permit_date'     => $request->permit_date, // Menyimpan perubahan tanggal
+            'permit_type'     => $request->permit_type,
+            'reason'          => $request->reason,
+            'target_time_out' => $request->target_time_out,
+            'target_time_in'  => $request->permit_type == 'pribadi' ? $request->target_time_in : null,
+        ]);
+
+        // 4. Redirect kembali ke halaman riwayat (my-permits)
+        return redirect()->route('employee.my-permits')
+            ->with('success', 'Pengajuan izin berhasil diperbarui.');
+    }
+    /**
+     * Memproses penghapusan / pembatalan izin
+     */
+    public function destroy($id)
+    {
+        $permit = Permit::where('id', $id)
+            ->where('user_id', auth()->id())
+            ->where('status', 'pending')
+            ->firstOrFail();
+
+        $permit->delete();
+
+        return redirect()->route('employee.my-permits')
+            ->with('success', 'Pengajuan izin berhasil dibatalkan dan dihapus.');
     }
 }

@@ -23,12 +23,6 @@ class AuthController extends Controller
         // 2. Coba Login
         if (Auth::attempt($credentials)) {
             $request->session()->regenerate();
-
-            // PERBAIKAN DI SINI:
-            // Kita hapus logika if-else role manual.
-            // Cukup redirect ke route 'dashboard' utama.
-            // Biarkan routes/web.php yang menentukan tampilan admin/user.
-            
             return redirect()->intended(route('dashboard'));
         }
 

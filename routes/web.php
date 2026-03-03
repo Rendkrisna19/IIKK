@@ -72,8 +72,6 @@ Route::middleware('auth')->group(function () {
     }
 
 })->name('dashboard');
-
-
     // =================================================================
     // GROUP: SUPER ADMIN (HRD/MIS)
     // Akses: Manajemen User, Departemen, Laporan Full
@@ -89,8 +87,6 @@ Route::middleware('auth')->group(function () {
         Route::get('/reports/pdf', [App\Http\Controllers\AdminController::class, 'exportPdf'])->name('reports.pdf');
         Route::get('/reports/excel', [App\Http\Controllers\AdminController::class, 'exportExcel'])->name('reports.excel');
     });
-
-
     // =================================================================
     // GROUP: HOD (Head of Department / Manager)
     // Akses: Approval Izin Bawahan
@@ -100,8 +96,6 @@ Route::middleware('auth')->group(function () {
         Route::get('/history', [App\Http\Controllers\HodController::class, 'history'])->name('history');
         Route::patch('/permit/{permit}/update', [App\Http\Controllers\HodController::class, 'updateStatus'])->name('permit.update');
     });
-
-
     // =================================================================
     // GROUP: SECURITY
     // Akses: Input Jam Keluar/Masuk, Validasi Surat
@@ -110,9 +104,6 @@ Route::middleware('auth')->group(function () {
         Route::get('/dashboard', [App\Http\Controllers\SecurityController::class, 'index'])->name('dashboard');
         Route::post('/scan', [App\Http\Controllers\SecurityController::class, 'scan'])->name('scan');
     });
-
-
-
     // =================================================================
     // GROUP: EMPLOYEE (Karyawan Biasa)
     // Akses: Buat Izin Baru, Lihat Status Izin Sendiri
@@ -122,5 +113,8 @@ Route::middleware('auth')->group(function () {
         Route::post('/permit', [App\Http\Controllers\PermitController::class, 'store'])->name('permit.store');
         Route::get('/permit/{permit}/print', [App\Http\Controllers\PermitController::class, 'print'])->name('permit.print');
         Route::get('/my-permits', [App\Http\Controllers\PermitController::class, 'index'])->name('my-permits');
+        Route::get('/permit/{id}/edit', [App\Http\Controllers\PermitController::class, 'edit'])->name('permit.edit');
+         Route::put('/permit/{id}', [App\Http\Controllers\PermitController::class, 'update'])->name('permit.update');    
+     Route::delete('/permit/{id}', [App\Http\Controllers\PermitController::class, 'destroy'])->name('permit.destroy');
     });
 });
