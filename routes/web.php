@@ -3,6 +3,7 @@
 use App\Http\Controllers\AuthController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
+use App\Http\Controllers\ProfileController;
 
 /*
 |--------------------------------------------------------------------------
@@ -24,6 +25,9 @@ Route::middleware('guest')->group(function () {
 // --- 2. AUTHENTICATED ROUTES (Sudah Login) ---
 Route::middleware('auth')->group(function () {
 
+    //profile
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
     // Logout
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
@@ -95,14 +99,17 @@ Route::middleware('auth')->group(function () {
         Route::get('/approvals', [App\Http\Controllers\HodController::class, 'approvals'])->name('approvals');
         Route::get('/history', [App\Http\Controllers\HodController::class, 'history'])->name('history');
         Route::patch('/permit/{permit}/update', [App\Http\Controllers\HodController::class, 'updateStatus'])->name('permit.update');
+        Route::get('/history/export/excel', [App\Http\Controllers\HodController::class, 'exportExcel'])->name('history.export.excel');
+    Route::get('/history/export/pdf', [App\Http\Controllers\HodController::class, 'exportPdf'])->name('history.export.pdf');
     });
     // =================================================================
     // GROUP: SECURITY
     // Akses: Input Jam Keluar/Masuk, Validasi Surat
     // =================================================================
     Route::prefix('security')->name('security.')->group(function () {
-        Route::get('/dashboard', [App\Http\Controllers\SecurityController::class, 'index'])->name('dashboard');
-        Route::post('/scan', [App\Http\Controllers\SecurityController::class, 'scan'])->name('scan');
+       Route::get('/dashboard', [App\Http\Controllers\SecurityController::class, 'index'])->name('dashboard');
+    Route::post('/scan', [App\Http\Controllers\SecurityController::class, 'scan'])->name('scan');
+    Route::post('/confirm', [App\Http\Controllers\SecurityController::class, 'confirm'])->name('confirm'); // Route Baru
     });
     // =================================================================
     // GROUP: EMPLOYEE (Karyawan Biasa)

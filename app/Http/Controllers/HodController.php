@@ -5,6 +5,9 @@ namespace App\Http\Controllers;
 use App\Models\Permit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Maatwebsite\Excel\Facades\Excel;
+use App\Exports\PermitHistoryExport;
 
 class HodController extends Controller
 {
@@ -50,19 +53,59 @@ class HodController extends Controller
         return view('hod.approvals', compact('permits'));
     }
 
-    public function history()
+  public function history(Request $request)
     {
-        // Menampilkan riwayat (Approved/Rejected)
         $deptId = Auth::user()->department_id;
-        $permits = Permit::with(['user', 'approver'])
-                        ->whereHas('user', fn($q) => $q->where('department_id', $deptId))
-                        ->whereIn('status', ['approved', 'rejected', 'out', 'returned']) // Status selain pending
-                        ->latest()
-                        ->paginate(10);
+        
+        $query = Permit::with(['user', 'approver'])
+            ->whereHas('user', fn($q) => $q->where('department_id', $deptId))
+            ->whereIn('status', ['approved', 'out', 'returned']);
+            
+        // Filter Server-side (Berdasarkan Bulan)
+        if ($request->has('month') && $request->month != '') {
+            $query->whereMonth('permit_date', date('m', strtotime($request->month)))
+                  ->whereYear('permit_date', date('Y', strtotime($request->month)));
+        }
+
+        // UBAH paginate() MENJADI get()
+        $permits = $query->orderBy('permit_date', 'desc')->get();
 
         return view('hod.history', compact('permits'));
     }
 
+    public function exportExcel(Request $request)
+    {
+        $deptId = Auth::user()->department_id;
+        $month = $request->month; // Tangkap filter bulan
+
+        return Excel::download(new PermitHistoryExport($deptId, $month), 'Laporan_IKK_MNA.xlsx');
+    }
+
+    // Export PDF
+    public function exportPdf(Request $request)
+    {
+        $deptId = Auth::user()->department_id;
+        $month = $request->month; // Tangkap filter bulan
+        $departmentName = Auth::user()->department->name ?? '-';
+
+        $query = Permit::with('user')
+            ->whereHas('user', fn($q) => $q->where('department_id', $deptId))
+            ->whereIn('status', ['approved', 'out', 'returned']);
+
+        // Terapkan filter jika ada
+        if ($month) {
+            $query->whereMonth('permit_date', date('m', strtotime($month)))
+                  ->whereYear('permit_date', date('Y', strtotime($month)));
+        }
+
+        $permits = $query->orderBy('permit_date', 'desc')->get();
+
+        // Load View PDF
+        $pdf = Pdf::loadView('hod.exports.pdf', compact('permits', 'month', 'departmentName'))
+                  ->setPaper('A4', 'landscape');
+                  
+        return $pdf->download('Laporan_IKK_MNA.pdf');
+    }
     /**
      * Proses Approve atau Reject Izin
      */
@@ -94,4 +137,6 @@ class HodController extends Controller
 
         return redirect()->back()->with('success', $message);
     }
+
+    
 }

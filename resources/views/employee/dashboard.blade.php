@@ -4,18 +4,40 @@
 @section('content')
 <div class="max-w-6xl mx-auto space-y-8">
 
-    <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 flex flex-col md:flex-row justify-between items-center gap-6">
-        <div class="flex items-center gap-4">
-            <div class="h-16 w-16 rounded-full bg-mna-teal text-white flex items-center justify-center text-2xl font-bold shadow-md">
-                {{ substr(Auth::user()->name, 0, 1) }}
+    <div class="bg-gradient-to-r from-white to-mna-light rounded-3xl p-6 sm:p-8 shadow-card border border-teal-50 flex flex-col md:flex-row justify-between items-center gap-6 relative overflow-hidden">
+        <div class="absolute right-0 top-0 w-64 h-64 bg-mna-teal/5 rounded-full blur-3xl -mr-20 -mt-20"></div>
+        
+        <div class="flex items-center gap-5 z-10">
+            <div class="relative group">
+                <a href="{{ route('profile.edit') }}" class="block h-20 w-20 rounded-full overflow-hidden shadow-md border-4 border-white bg-white transition-transform duration-300 group-hover:scale-105">
+                    @if(Auth::user()->profile_photo)
+                        <img src="{{ asset('storage/' . Auth::user()->profile_photo) }}" alt="Profile" class="h-full w-full object-cover">
+                    @else
+                        <div class="h-full w-full bg-gradient-to-br from-mna-teal to-mna-dark text-white flex items-center justify-center text-3xl font-extrabold">
+                            {{ substr(Auth::user()->name, 0, 1) }}
+                        </div>
+                    @endif
+                    <div class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                        <i class="fas fa-camera text-white text-xl"></i>
+                    </div>
+                </a>
+                <div class="absolute -bottom-2 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-[10px] px-2 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+                    Ubah Foto
+                </div>
             </div>
+
             <div>
-                <h2 class="text-xl font-bold text-gray-800">Halo, {{ Auth::user()->name }}!</h2>
-                <p class="text-sm text-gray-500">{{ Auth::user()->position ?? 'Staff' }} - {{ Auth::user()->department->name ?? 'Umum' }}</p>
+                <p class="text-sm font-bold text-mna-teal uppercase tracking-widest mb-1">Selamat Datang Kembali,</p>
+                <h2 class="text-2xl font-extrabold text-gray-800 leading-tight">{{ Auth::user()->name }}!</h2>
+                <p class="text-sm text-gray-500 font-medium mt-1 flex items-center gap-2">
+                    <i class="fas fa-briefcase text-gray-400"></i> {{ Auth::user()->position ?? 'Staff' }} 
+                    <span class="text-gray-300">|</span> 
+                    <i class="fas fa-building text-gray-400"></i> {{ Auth::user()->department->name ?? 'Umum' }}
+                </p>
             </div>
         </div>
         
-        <a href="{{ route('employee.permit.create') }}" class="group relative inline-flex items-center justify-center px-6 py-3 text-sm font-bold text-white transition-all duration-200 bg-mna-dark font-pj rounded-xl focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-mna-dark hover:bg-mna-teal shadow-lg shadow-mna-teal/30">
+        <a href="{{ route('employee.permit.create') }}" class="z-10 group relative inline-flex items-center justify-center px-6 py-3.5 text-sm font-bold text-white transition-all duration-300 bg-mna-teal rounded-xl focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-mna-teal hover:bg-mna-dark shadow-lg shadow-mna-teal/30 hover:-translate-y-1">
             <svg class="w-5 h-5 mr-2 -ml-1 transition-transform group-hover:rotate-90" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
             </svg>
@@ -24,111 +46,136 @@
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 relative overflow-hidden group hover:-translate-y-1 transition-all">
-            <div class="absolute right-0 top-0 h-24 w-24 bg-yellow-50 rounded-full -mr-6 -mt-6 transition-transform group-hover:scale-110"></div>
-            <div class="relative z-10">
-                <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Menunggu Approval</p>
-                <div class="flex items-end gap-2">
-                    <h3 class="text-3xl font-bold text-gray-800">{{ $stats['pending'] }}</h3>
-                    <span class="text-sm text-yellow-600 font-medium mb-1">Permohonan</span>
+        <div class="bg-white p-6 rounded-2xl shadow-card border border-gray-100 relative overflow-hidden group hover:-translate-y-1 transition-all duration-300">
+            <div class="absolute right-0 top-0 h-24 w-24 bg-yellow-50 rounded-full -mr-6 -mt-6 transition-transform duration-500 group-hover:scale-150"></div>
+            <div class="relative z-10 flex justify-between items-start">
+                <div>
+                    <p class="text-[11px] font-extrabold text-gray-400 uppercase tracking-wider mb-1">Menunggu Approval</p>
+                    <div class="flex items-end gap-2">
+                        <h3 class="text-4xl font-black text-gray-800">{{ $stats['pending'] }}</h3>
+                        <span class="text-sm text-yellow-600 font-bold mb-1.5">Permohonan</span>
+                    </div>
+                </div>
+                <div class="h-10 w-10 rounded-full bg-yellow-100 flex items-center justify-center text-yellow-600">
+                    <i class="fas fa-clock text-lg"></i>
                 </div>
             </div>
-            <div class="mt-4 h-1 w-full bg-gray-100 rounded-full overflow-hidden">
+            <div class="mt-5 h-1.5 w-full bg-gray-50 rounded-full overflow-hidden">
                 <div class="h-full bg-yellow-400 w-1/2 rounded-full"></div>
             </div>
         </div>
 
-        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 relative overflow-hidden group hover:-translate-y-1 transition-all">
-            <div class="absolute right-0 top-0 h-24 w-24 bg-green-50 rounded-full -mr-6 -mt-6 transition-transform group-hover:scale-110"></div>
-            <div class="relative z-10">
-                <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Disetujui Bulan Ini</p>
-                <div class="flex items-end gap-2">
-                    <h3 class="text-3xl font-bold text-gray-800">{{ $stats['approved'] }}</h3>
-                    <span class="text-sm text-green-600 font-medium mb-1">Kali Izin</span>
+        <div class="bg-white p-6 rounded-2xl shadow-card border border-gray-100 relative overflow-hidden group hover:-translate-y-1 transition-all duration-300">
+            <div class="absolute right-0 top-0 h-24 w-24 bg-green-50 rounded-full -mr-6 -mt-6 transition-transform duration-500 group-hover:scale-150"></div>
+            <div class="relative z-10 flex justify-between items-start">
+                <div>
+                    <p class="text-[11px] font-extrabold text-gray-400 uppercase tracking-wider mb-1">Disetujui Bulan Ini</p>
+                    <div class="flex items-end gap-2">
+                        <h3 class="text-4xl font-black text-gray-800">{{ $stats['approved'] }}</h3>
+                        <span class="text-sm text-green-600 font-bold mb-1.5">Kali Izin</span>
+                    </div>
+                </div>
+                <div class="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center text-green-600">
+                    <i class="fas fa-check-double text-lg"></i>
                 </div>
             </div>
-            <div class="mt-4 h-1 w-full bg-gray-100 rounded-full overflow-hidden">
+            <div class="mt-5 h-1.5 w-full bg-gray-50 rounded-full overflow-hidden">
                 <div class="h-full bg-green-500 w-3/4 rounded-full"></div>
             </div>
         </div>
 
-        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 relative overflow-hidden group hover:-translate-y-1 transition-all">
-            <div class="absolute right-0 top-0 h-24 w-24 bg-blue-50 rounded-full -mr-6 -mt-6 transition-transform group-hover:scale-110"></div>
-            <div class="relative z-10">
-                <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Total Riwayat</p>
-                <div class="flex items-end gap-2">
-                    <h3 class="text-3xl font-bold text-gray-800">{{ $stats['total'] }}</h3>
-                    <span class="text-sm text-blue-600 font-medium mb-1">Seluruh Waktu</span>
+        <div class="bg-white p-6 rounded-2xl shadow-card border border-gray-100 relative overflow-hidden group hover:-translate-y-1 transition-all duration-300">
+            <div class="absolute right-0 top-0 h-24 w-24 bg-blue-50 rounded-full -mr-6 -mt-6 transition-transform duration-500 group-hover:scale-150"></div>
+            <div class="relative z-10 flex justify-between items-start">
+                <div>
+                    <p class="text-[11px] font-extrabold text-gray-400 uppercase tracking-wider mb-1">Total Riwayat</p>
+                    <div class="flex items-end gap-2">
+                        <h3 class="text-4xl font-black text-gray-800">{{ $stats['total'] }}</h3>
+                        <span class="text-sm text-blue-600 font-bold mb-1.5">Seluruh Waktu</span>
+                    </div>
+                </div>
+                <div class="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
+                    <i class="fas fa-folder-open text-lg"></i>
                 </div>
             </div>
-            <div class="mt-4 h-1 w-full bg-gray-100 rounded-full overflow-hidden">
+            <div class="mt-5 h-1.5 w-full bg-gray-50 rounded-full overflow-hidden">
                 <div class="h-full bg-blue-500 w-full rounded-full"></div>
             </div>
         </div>
     </div>
 
-    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-        <div class="p-6 border-b border-gray-100 flex justify-between items-center">
-            <h3 class="font-bold text-gray-800">Aktivitas Terkini</h3>
-            <a href="{{ route('employee.my-permits') }}" class="text-sm text-mna-teal font-semibold hover:underline">Lihat Semua</a>
+    <div class="bg-white rounded-2xl shadow-card border border-gray-100 overflow-hidden">
+        <div class="p-6 border-b border-gray-50 flex justify-between items-center bg-white">
+            <h3 class="font-extrabold text-gray-800 text-lg flex items-center gap-2">
+                <i class="fas fa-list text-mna-teal"></i> Aktivitas Terkini
+            </h3>
+            <a href="{{ route('employee.my-permits') }}" class="text-sm text-mna-teal font-bold hover:text-mna-dark transition-colors bg-mna-light px-4 py-2 rounded-lg">
+                Lihat Semua <i class="fas fa-arrow-right ml-1 text-xs"></i>
+            </a>
         </div>
         
-        <div class="overflow-x-auto">
-            <table class="w-full text-left">
-                <thead class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider">
+        <div class="p-6 overflow-x-auto">
+            <table class="datatable w-full text-left">
+                <thead>
                     <tr>
-                        <th class="p-4 font-semibold">Tanggal</th>
-                        <th class="p-4 font-semibold">Keperluan</th>
-                        <th class="p-4 font-semibold">Alasan</th>
-                        <th class="p-4 font-semibold">Status</th>
-                        <th class="p-4 font-semibold text-right">Jam Keluar</th>
+                        <th>Tanggal</th>
+                        <th>Keperluan</th>
+                        <th>Alasan</th>
+                        <th>Status</th>
+                        <th class="text-right">Jam Keluar</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-gray-100 text-sm">
+                <tbody>
                     @forelse($recentPermits as $permit)
-                    <tr class="hover:bg-gray-50 transition-colors">
-                        <td class="p-4 font-medium text-gray-700">
-                            {{ $permit->created_at->format('d M Y') }}
-                            <div class="text-xs text-gray-400">{{ $permit->created_at->format('H:i') }} WIB</div>
+                    <tr>
+                        <td>
+                            <div class="font-bold text-gray-800">{{ $permit->created_at->format('d M Y') }}</div>
+                            <div class="text-xs font-semibold text-gray-400 mt-0.5">{{ $permit->created_at->format('H:i') }} WIB</div>
                         </td>
-                        <td class="p-4">
+                        <td>
                             @if($permit->permit_type == 'tugas')
-                                <span class="text-blue-600 font-bold text-xs bg-blue-50 px-2 py-1 rounded">Tugas Kantor</span>
+                                <span class="text-blue-700 font-bold text-xs bg-blue-50 border border-blue-100 px-2.5 py-1 rounded-md flex items-center w-max gap-1">
+                                    <i class="fas fa-briefcase"></i> Tugas Kantor
+                                </span>
                             @else
-                                <span class="text-purple-600 font-bold text-xs bg-purple-50 px-2 py-1 rounded">Pribadi</span>
+                                <span class="text-purple-700 font-bold text-xs bg-purple-50 border border-purple-100 px-2.5 py-1 rounded-md flex items-center w-max gap-1">
+                                    <i class="fas fa-user"></i> Pribadi
+                                </span>
                             @endif
                         </td>
-                        <td class="p-4 text-gray-600 max-w-xs truncate" title="{{ $permit->reason }}">
-                            {{ $permit->reason }}
+                        <td>
+                            <div class="text-gray-600 font-medium max-w-xs truncate" title="{{ $permit->reason }}">
+                                {{ $permit->reason }}
+                            </div>
                         </td>
-                        <td class="p-4">
+                        <td>
                             @if($permit->status == 'pending')
-                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                                    <span class="w-2 h-2 mr-1 bg-yellow-400 rounded-full animate-pulse"></span> Menunggu HOD
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-yellow-50 text-yellow-700 border border-yellow-200">
+                                    <span class="w-2 h-2 mr-1.5 bg-yellow-400 rounded-full animate-pulse"></span> Menunggu HOD
                                 </span>
                             @elseif($permit->status == 'approved')
-                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                    Disetujui
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-green-50 text-green-700 border border-green-200">
+                                    <i class="fas fa-check mr-1.5"></i> Disetujui
                                 </span>
                             @elseif($permit->status == 'rejected')
-                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                                    Ditolak
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-red-50 text-red-700 border border-red-200">
+                                    <i class="fas fa-times mr-1.5"></i> Ditolak
+                                </span>
+                            @else
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-gray-50 text-gray-700 border border-gray-200">
+                                    {{ ucfirst($permit->status) }}
                                 </span>
                             @endif
                         </td>
-                        <td class="p-4 text-right font-mono text-gray-600">
-                            {{ $permit->time_out ? \Carbon\Carbon::parse($permit->time_out)->format('H:i') : '-' }}
+                        <td class="text-right font-mono text-gray-700 font-bold">
+                            @if($permit->time_out)
+                                <span class="bg-gray-100 px-2 py-1 rounded text-sm">{{ \Carbon\Carbon::parse($permit->time_out)->format('H:i') }}</span>
+                            @else
+                                <span class="text-gray-300">-</span>
+                            @endif
                         </td>
                     </tr>
                     @empty
-                    <tr>
-                        <td colspan="5" class="p-8 text-center text-gray-400">
-                            <div class="flex flex-col items-center">
-                                <svg class="w-12 h-12 text-gray-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                                <p>Belum ada riwayat pengajuan izin.</p>
-                            </div>
-                        </td>
-                    </tr>
                     @endforelse
                 </tbody>
             </table>

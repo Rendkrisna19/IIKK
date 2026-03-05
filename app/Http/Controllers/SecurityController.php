@@ -9,102 +9,136 @@ use Carbon\Carbon;
 
 class SecurityController extends Controller
 {
-    // Halaman Utama (Dashboard Mobile)
     public function index()
     {
-        // Ambil Log Hari Ini (Yang sudah discan keluar/masuk hari ini)
         $todayLogs = Permit::whereDate('time_out', Carbon::today())
                            ->orWhereDate('time_in', Carbon::today())
                            ->with(['user.department', 'approver'])
-                           ->latest('updated_at')
-                           ->take(10)
-                           ->get();
+                           ->latest('updated_at')->take(10)->get();
 
-        // Hitung Statistik Hari Ini
         $stats = [
             'out' => Permit::whereDate('time_out', Carbon::today())->count(),
             'in'  => Permit::whereDate('time_in', Carbon::today())->count(),
-            'active_outside' => Permit::whereDate('time_out', Carbon::today())
-                                      ->whereNull('time_in')
-                                      ->count(),
+            'active_outside' => Permit::whereDate('time_out', Carbon::today())->whereNull('time_in')->count(),
         ];
 
         return view('security.dashboard', compact('todayLogs', 'stats'));
     }
 
-    // Proses Scan QR Code (Ajax Request)
+    // TAHAP 1: BACA DATA & VALIDASI (TIDAK SIMPAN KE DATABASE DULU)
     public function scan(Request $request)
     {
         $request->validate(['uuid' => 'required']);
 
-        // 1. Cari Permit Berdasarkan UUID
-        $permit = Permit::where('uuid', $request->uuid)->with('user')->first();
+        $permit = Permit::where('uuid', $request->uuid)->with('user.department')->first();
 
         if (!$permit) {
-            return response()->json(['status' => 'error', 'message' => 'QR Code tidak ditemukan!']);
+            return response()->json(['status' => 'error', 'message' => 'QR Code tidak valid / tidak ditemukan!']);
         }
 
-        // 2. Cek Status Approval
-        if (!in_array($permit->status, ['approved', 'out'])) {
-            if ($permit->status == 'returned') {
-                 return response()->json(['status' => 'error', 'message' => 'Tiket ini sudah selesai digunakan (Expired).']);
-            }
-            return response()->json(['status' => 'error', 'message' => 'Izin belum disetujui atau dibatalkan!']);
-        }
-
-        // 3. LOGIKA CEK KELUAR / MASUK
-        $message = '';
-        $type = '';
         $now = Carbon::now();
 
-        // KASUS A: Belum Keluar -> Catat Jam Keluar
-        if ($permit->time_out == null) {
+        // Validasi Status Dasar
+        if ($permit->status == 'pending') return response()->json(['status' => 'error', 'message' => 'Izin belum disetujui HOD!']);
+        if ($permit->status == 'rejected') return response()->json(['status' => 'error', 'message' => 'Izin ini telah ditolak HOD.']);
+        if ($permit->status == 'returned') return response()->json(['status' => 'error', 'message' => 'Tiket ini sudah Expired / Selesai digunakan.']);
+        if (!in_array($permit->status, ['approved', 'out'])) return response()->json(['status' => 'error', 'message' => 'Status tidak valid.']);
+
+        $action = '';
+
+        // JIKA KARYAWAN MAU KELUAR
+        if ($permit->status == 'approved' && $permit->time_out == null) {
+            $targetTimeOut = Carbon::parse($permit->permit_date . ' ' . $permit->target_time_out);
+            $earliestAllowedTime = $targetTimeOut->copy()->subMinutes(15);
+
+            // Validasi Jam Keluar (Misal belum waktunya)
+            if ($now->lessThan($earliestAllowedTime)) {
+                $diff = $now->diff($targetTimeOut);
+                $countdownMsg = ($diff->h > 0 ? $diff->h . ' Jam ' : '') . $diff->i . ' Menit';
+                return response()->json([
+                    'status' => 'warning',
+                    'message' => "Belum waktunya keluar! Jadwal keluar pukul {$targetTimeOut->format('H:i')}. Silakan tunggu $countdownMsg lagi."
+                ]);
+            }
+            $action = 'OUT';
+        } 
+        // JIKA KARYAWAN MAU MASUK
+        elseif ($permit->status == 'out' && $permit->time_in == null) {
+            $action = 'IN';
+        }
+
+        // KEMBALIKAN DATA KE LAYAR HP SECURITY UNTUK DIVERIFIKASI
+        return response()->json([
+            'status' => 'verify',
+            'action' => $action,
+            'uuid' => $permit->uuid,
+            'user' => [
+                'name' => $permit->user->name,
+                'nik' => $permit->user->nik,
+                'department' => $permit->user->department->name ?? '-',
+                'photo' => $permit->user->profile_photo ? asset('storage/' . $permit->user->profile_photo) : null,
+                'initials' => substr($permit->user->name, 0, 1)
+            ],
+            'permit' => [
+                'reason' => $permit->reason,
+                'type' => $permit->permit_type,
+                'target_time_in' => $permit->target_time_in ? Carbon::parse($permit->target_time_in)->format('H:i') : '-'
+            ]
+        ]);
+    }
+
+    // TAHAP 2: EKSEKUSI SETELAH SECURITY KLIK "SESUAI & IZINKAN" / "BEDA ORANG"
+    public function confirm(Request $request)
+    {
+        $request->validate([
+            'uuid' => 'required',
+            'action' => 'required|in:OUT,IN',
+            'is_verified' => 'required|boolean'
+        ]);
+
+        // JIKA SECURITY KLIK "TOLAK / BEDA ORANG"
+        if (!$request->is_verified) {
+            return response()->json(['status' => 'error', 'message' => 'Dibatalkan: Wajah/Identitas fisik tidak sesuai dengan data sistem!']);
+        }
+
+        $permit = Permit::where('uuid', $request->uuid)->first();
+        if (!$permit) return response()->json(['status' => 'error', 'message' => 'Data izin tidak valid.']);
+
+        $now = Carbon::now();
+
+        // EKSEKUSI KELUAR
+        if ($request->action == 'OUT') {
             $permit->update([
                 'status' => 'out',
                 'time_out' => $now,
                 'security_out_id' => Auth::id()
             ]);
-            $type = 'OUT';
-            $message = 'Berhasil! Karyawan KELUAR area pabrik.';
+            return response()->json(['status' => 'success', 'message' => 'Berhasil! Karyawan telah diverifikasi KELUAR area pabrik.']);
         } 
-        // KASUS B: Sudah Keluar, Belum Masuk -> Catat Jam Masuk
-        elseif ($permit->time_out != null && $permit->time_in == null) {
+        
+        // EKSEKUSI MASUK
+        if ($request->action == 'IN') {
             $lateMinutes = null;
-            $lateMessage = '';
-
-            // LOGIKA HITUNG KETERLAMBATAN (Khusus Izin Pribadi)
+            
+            // Cek Keterlambatan Izin Pribadi
             if ($permit->permit_type == 'pribadi' && $permit->target_time_in != null) {
-                // Gabungkan tanggal hari ini dengan jam target kembali
-                $targetDateTime = Carbon::parse($now->format('Y-m-d') . ' ' . $permit->target_time_in);
-                
-                // Jika waktu sekarang melebihi target waktu kembali
-                if ($now->greaterThan($targetDateTime)) {
-                    $lateMinutes = $now->diffInMinutes($targetDateTime); // Hitung selisih menit
-                    $lateMessage = " (Terlambat {$lateMinutes} menit!)";
+                $targetTimeIn = Carbon::parse($permit->permit_date . ' ' . $permit->target_time_in);
+                if ($now->greaterThan($targetTimeIn)) {
+                    $lateMinutes = $now->diffInMinutes($targetTimeIn);
                 }
             }
-
+            
             $permit->update([
-                'status' => 'returned', // Status selesai
+                'status' => 'returned',
                 'time_in' => $now,
                 'security_in_id' => Auth::id(),
-                'late_minutes' => $lateMinutes // Simpan keterlambatan ke DB
+                'late_minutes' => $lateMinutes
             ]);
             
-            $type = 'IN';
-            $message = 'Berhasil! Karyawan KEMBALI ke area pabrik.' . $lateMessage;
-        } 
-        // KASUS C: Fallback Error
-        else {
-            return response()->json(['status' => 'error', 'message' => 'Terjadi kesalahan validasi data.']);
+            $msg = 'Berhasil! Karyawan telah diverifikasi MASUK.';
+            if ($lateMinutes) $msg .= " (Terlambat $lateMinutes menit!)";
+            
+            return response()->json(['status' => 'success', 'message' => $msg]);
         }
-
-        return response()->json([
-            'status' => 'success', 
-            'message' => $message, 
-            'type' => $type,
-            'user' => $permit->user->name ?? 'Karyawan',
-            'time' => $now->format('H:i')
-        ]);
     }
 }
