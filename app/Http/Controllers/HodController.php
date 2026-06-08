@@ -61,18 +61,18 @@ class HodController extends Controller
             ->whereHas('user', fn($q) => $q->where('department_id', $deptId))
             ->whereIn('status', ['approved', 'out', 'returned']);
             
-        // Filter Server-side (Berdasarkan Bulan)
-        if ($request->has('month') && $request->month != '') {
-            $query->whereMonth('permit_date', date('m', strtotime($request->month)))
-                  ->whereYear('permit_date', date('Y', strtotime($request->month)));
-        }
+        // Jika ada request month, gunakan itu. Jika tidak, gunakan bulan ini.
+        $filterMonth = $request->has('month') && $request->month != '' ? $request->month : date('Y-m');
 
-        // UBAH paginate() MENJADI get()
-        $permits = $query->orderBy('permit_date', 'desc')->get();
+        $query->whereMonth('permit_date', date('m', strtotime($filterMonth)))
+              ->whereYear('permit_date', date('Y', strtotime($filterMonth)));
 
-        return view('hod.history', compact('permits'));
+        // UBAH paginate() MENJADI get() untuk DataTables
+        $permits = $query->orderBy('permit_date', 'desc')->orderBy('created_at', 'desc')->get();
+
+        // Kirim kembali $filterMonth ke view agar input date terisi benar
+        return view('hod.history', compact('permits', 'filterMonth'));
     }
-
     public function exportExcel(Request $request)
     {
         $deptId = Auth::user()->department_id;

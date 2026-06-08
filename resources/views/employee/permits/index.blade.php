@@ -51,34 +51,90 @@
                             </div>
                         </td>
 
-                        <td class="p-5">
+                        <td class="p-5 max-w-xs">
                             <span class="block font-medium text-gray-700 mb-1">{{ $permit->reason }}</span>
                             <span class="text-xs font-semibold px-2 py-1 rounded bg-gray-50 border border-gray-100 {{ $permit->permit_type == 'tugas' ? 'text-blue-600' : 'text-orange-600' }}">
                                 <i class="fa-solid {{ $permit->permit_type == 'tugas' ? 'fa-briefcase' : 'fa-person-walking-arrow-right' }} mr-1"></i>
                                 {{ ucfirst($permit->permit_type) }}
                             </span>
+                            
+                            @if($permit->hod_message)
+                                <div class="mt-2 bg-gray-50 p-2 rounded-lg border border-gray-200 text-xs text-gray-600">
+                                    <span class="font-bold text-gray-800 block mb-0.5"><i class="fa-solid fa-comment-dots text-mna-teal mr-1"></i> Catatan HOD:</span>
+                                    <p class="italic">"{{ $permit->hod_message }}"</p>
+                                </div>
+                            @endif
                         </td>
 
                         <td class="p-5">
                             @if($permit->status == 'approved')
-                                <span class="bg-green-100 text-green-700 px-3 py-1.5 rounded-full text-xs font-bold inline-flex items-center gap-1">
+                                <span class="bg-green-100 text-green-700 px-3 py-1.5 rounded-full text-xs font-bold inline-flex items-center gap-1 mb-1">
                                     <i class="fa-solid fa-check-circle"></i> Disetujui
                                 </span>
                             @elseif($permit->status == 'pending')
-                                <span class="bg-yellow-100 text-yellow-700 px-3 py-1.5 rounded-full text-xs font-bold inline-flex items-center gap-1">
+                                <span class="bg-yellow-100 text-yellow-700 px-3 py-1.5 rounded-full text-xs font-bold inline-flex items-center gap-1 mb-1">
                                     <i class="fa-solid fa-clock"></i> Menunggu
                                 </span>
+                            @elseif($permit->status == 'out')
+                                <span class="bg-blue-100 text-blue-700 px-3 py-1.5 rounded-full text-xs font-bold inline-flex items-center gap-1 mb-1">
+                                    <i class="fa-solid fa-person-walking-arrow-right"></i> Sedang Di Luar
+                                </span>
+                            @elseif($permit->status == 'returned')
+                                <span class="bg-gray-100 text-gray-700 px-3 py-1.5 rounded-full text-xs font-bold inline-flex items-center gap-1 mb-1">
+                                    <i class="fa-solid fa-building-circle-check"></i> Selesai
+                                </span>
                             @else
-                                <span class="bg-red-100 text-red-700 px-3 py-1.5 rounded-full text-xs font-bold inline-flex items-center gap-1">
+                                <span class="bg-red-100 text-red-700 px-3 py-1.5 rounded-full text-xs font-bold inline-flex items-center gap-1 mb-1">
                                     <i class="fa-solid fa-times-circle"></i> Ditolak
                                 </span>
                             @endif
+                            
+                            @if($permit->status == 'approved')
+                                @php
+                                    $targetTimeOut = \Carbon\Carbon::parse($permit->permit_date . ' ' . $permit->target_time_out);
+                                    $earliestAllowedTime = $targetTimeOut->copy()->subMinutes(15);
+                                @endphp
+                                <p class="text-[10px] text-gray-500 mt-1.5">
+                                    Bisa discan mulai jam: <br><span class="font-bold text-mna-dark">{{ $earliestAllowedTime->format('H:i') }}</span>
+                                </p>
+                            @endif
+
+                            @if($permit->status == 'returned' && $permit->permit_type == 'pribadi' && $permit->time_in && $permit->target_time_in)
+                                @php
+                                    // Menggabungkan tanggal izin dengan jam target dan aktual untuk dihitung
+                                    $targetIn = \Carbon\Carbon::parse($permit->permit_date . ' ' . $permit->target_time_in);
+                                    $actualIn = \Carbon\Carbon::parse($permit->time_in);
+                                @endphp
+
+                                @if($actualIn->greaterThan($targetIn))
+                                    @php
+                                        // Menghitung selisih mendetail
+                                        $diff = $targetIn->diff($actualIn);
+                                        $lateText = '';
+                                        if($diff->h > 0) $lateText .= $diff->h . ' Jam ';
+                                        if($diff->i > 0) $lateText .= $diff->i . ' Menit ';
+                                        if($diff->s > 0 || $lateText == '') $lateText .= $diff->s . ' Detik';
+                                    @endphp
+                                    <div class="mt-1.5">
+                                        <span class="bg-red-50 text-red-600 border border-red-200 px-2 py-1 rounded-lg text-[10px] font-bold inline-flex items-center gap-1 shadow-sm">
+                                            <i class="fa-solid fa-triangle-exclamation animate-pulse"></i> Telat: {{ trim($lateText) }}
+                                        </span>
+                                    </div>
+                                @else
+                                    <div class="mt-1.5">
+                                        <span class="bg-green-50 text-green-600 border border-green-200 px-2 py-1 rounded-lg text-[10px] font-bold inline-flex items-center gap-1 shadow-sm">
+                                            <i class="fa-solid fa-check-double"></i> Tepat Waktu
+                                        </span>
+                                    </div>
+                                @endif
+                            @endif
+
                         </td>
 
                         <td class="p-5 text-right">
                             <div class="flex justify-end gap-3">
                                 
-                                @if($permit->status == 'approved')
+                                @if($permit->status == 'approved' || $permit->status == 'out')
                                     <button @click="qrModalOpen = true; activeQr = '{{ route('security.scan', $permit->uuid) }}'; activeUuid = '{{ $permit->uuid }}'" 
                                             class="group relative flex items-center justify-center w-10 h-10 rounded-lg bg-gray-100 text-gray-600 hover:bg-mna-dark hover:text-white transition-all shadow-sm" title="Tampilkan QR Code">
                                         <i class="fa-solid fa-qrcode text-lg"></i>
