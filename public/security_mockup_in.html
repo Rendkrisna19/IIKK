@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Security Scan Mockup</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap');
+        * { font-family: 'Poppins', sans-serif !important; }
+        .btn-active:active { transform: scale(0.96); transition: transform 0.1s; }
+        .mna-teal { color: #0f766e; }
+        .bg-mna-teal { background-color: #0f766e; }
+        .from-mna-teal { --tw-gradient-from: #0f766e; }
+        .to-mna-dark { --tw-gradient-to: #111827; }
+        body { background-color: #F8FAFC; }
+    </style>
+</head>
+<body class="flex flex-col h-screen bg-[#F8FAFC] relative overflow-hidden font-sans text-gray-800">
+
+<!-- Latar Belakang Scanner (Simulasi) -->
+<div class="fixed inset-0 z-0 bg-black flex flex-col w-full h-full">
+    <div class="absolute top-0 w-full p-5 z-20 flex justify-between items-center text-white bg-gradient-to-b from-black/90 to-transparent">
+        <h3 class="font-bold text-lg tracking-wide drop-shadow-md">Scan QR Code</h3>
+        <button class="bg-white/10 border border-white/20 w-10 h-10 flex items-center justify-center rounded-full backdrop-blur-md text-white">
+            <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+    </div>
+    <div class="w-full h-full bg-gray-900 flex items-center justify-center">
+        <span class="text-white/50">Camera View...</span>
+    </div>
+</div>
+
+<!-- Modal Verifikasi -->
+<div class="fixed inset-0 z-[70] flex flex-col items-center justify-end sm:justify-center p-0 sm:p-4 bg-gray-900/80 backdrop-blur-sm" x-data="{
+    verifyData: {
+        action: 'IN',
+        user: {
+            name: 'Ahmad Faisal',
+            nik: '202300054',
+            department: 'Produksi',
+            photo: null,
+            initials: 'A'
+        },
+        permit: {
+            type: 'pribadi',
+            target_time_out: '12:00',
+            target_time_in: '13:00',
+            reason: 'Istirahat dan mengambil barang di luar'
+        }
+    }
+}">
+    <div class="bg-white w-full max-w-sm rounded-t-[2rem] sm:rounded-[2.5rem] shadow-2xl overflow-hidden relative mx-auto" style="width: 375px;"> <!-- simulasi lebar HP -->
+        
+        <div class="p-6 text-center text-white relative" :class="verifyData.action === 'OUT' ? 'bg-gradient-to-br from-blue-600 to-blue-800' : 'bg-gradient-to-br from-green-500 to-green-700'">
+            <p class="text-[10px] font-bold tracking-[0.2em] uppercase opacity-80 mb-1 relative z-10" x-text="verifyData.action === 'OUT' ? 'Verifikasi Keluar' : 'Verifikasi Masuk'"></p>
+            <h2 class="text-2xl font-black tracking-tight relative z-10">COCOKKAN WAJAH</h2>
+        </div>
+
+        <div class="px-6 pt-0 pb-8 relative">
+            <div class="flex justify-center mb-5">
+                <div class="w-28 h-28 rounded-full bg-gray-100 border-[6px] border-white shadow-[0_8px_15px_-5px_rgba(0,0,0,0.1)] overflow-hidden flex items-center justify-center -mt-14 relative z-20">
+                    <template x-if="verifyData.user && verifyData.user.photo">
+                        <img :src="verifyData.user.photo" class="w-full h-full object-cover">
+                    </template>
+                    <template x-if="verifyData.user && !verifyData.user.photo">
+                        <div class="w-full h-full bg-gradient-to-br from-[#0f766e] to-[#111827] flex items-center justify-center">
+                            <span class="text-4xl font-bold text-white" x-text="verifyData.user.initials"></span>
+                        </div>
+                    </template>
+                </div>
+            </div>
+
+            <div class="text-center mb-6" x-show="verifyData.user">
+                <h3 class="text-[17px] font-extrabold text-gray-900 leading-tight" x-text="verifyData.user.name"></h3>
+                <p class="text-[11px] text-gray-500 font-mono mt-1 font-semibold" x-text="'NIK: ' + verifyData.user.nik"></p>
+                <div class="inline-block mt-2 px-3 py-1 bg-gray-100 rounded-lg text-[10px] font-bold text-gray-600 uppercase tracking-wide border border-gray-200" x-text="verifyData.user.department"></div>
+            </div>
+
+            <div class="bg-blue-50/50 rounded-2xl p-4 border border-blue-100 text-sm mb-7" x-show="verifyData.permit">
+                <div class="flex justify-between items-center border-b border-blue-100/50 pb-3 mb-3">
+                    <span class="text-gray-500 text-xs font-semibold">Tipe Izin</span>
+                    <span class="font-extrabold uppercase tracking-wide text-[10px] px-2.5 py-1 rounded" 
+                          :class="verifyData.permit.type === 'tugas' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'"
+                          x-text="verifyData.permit.type"></span>
+                </div>
+                <div class="mb-3">
+                    <span class="block text-gray-500 text-[10px] font-bold uppercase tracking-wider mb-1">Target Waktu (Out-In)</span>
+                    <div class="flex items-center gap-2">
+                        <span class="bg-white border border-gray-200 px-3 py-1.5 rounded-lg font-mono text-xs font-bold shadow-sm" x-text="verifyData.permit.target_time_out"></span>
+                        <span class="text-gray-400 font-bold">-</span>
+                        <span class="bg-white border border-gray-200 px-3 py-1.5 rounded-lg font-mono text-xs font-bold shadow-sm" x-text="verifyData.permit.target_time_in"></span>
+                    </div>
+                </div>
+                <div>
+                    <span class="block text-gray-500 text-[10px] font-bold uppercase tracking-wider mb-0.5">Keperluan</span>
+                    <p class="text-gray-800 text-[13px] italic font-medium leading-relaxed">"<span x-text="verifyData.permit.reason"></span>"</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <button class="btn-active py-4 rounded-2xl border-2 border-red-100 text-red-600 font-bold text-[13px] bg-white hover:bg-red-50 flex flex-col items-center justify-center gap-1 shadow-sm">
+                    <i class="fa-solid fa-user-xmark text-xl"></i> Tolak / Beda
+                </button>
+                <button class="btn-active py-4 rounded-2xl font-bold text-[13px] text-white flex flex-col items-center justify-center gap-1 shadow-lg bg-green-600 shadow-green-600/30">
+                    <i class="fa-solid fa-user-check text-xl"></i> Izinkan Masuk
+                </button>
+            </div>
+            
+            <button class="w-full text-center mt-4 text-[11px] text-gray-400 font-bold hover:text-gray-600">Batal & Scan Ulang</button>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

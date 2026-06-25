@@ -106,7 +106,7 @@
 @endpush
 
 @section('content')
-<div class="max-w-7xl mx-auto space-y-8 py-6 px-4">
+<div class="max-w-7xl mx-auto space-y-8 py-6 px-4" x-data="{ cancelModalOpen: false, cancelId: '' }">
     
     <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div>
@@ -192,7 +192,8 @@
                         <th class="px-6 py-4">Detail Izin</th>
                         <th class="px-6 py-4">Estimasi Waktu</th>
                         <th class="px-6 py-4">Aktual Scan</th>
-                        <th class="px-6 py-4 text-center rounded-tr-2xl">Status</th>
+                        <th class="px-6 py-4 text-center">Status</th>
+                        <th class="px-6 py-4 text-center rounded-tr-2xl">Aksi</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-50">
@@ -276,8 +277,29 @@
                                 <span class="px-4 py-1.5 bg-green-50 text-green-700 text-[10px] font-bold rounded-xl border border-green-200 block shadow-sm">SELESAI</span>
                             @elseif($permit->status == 'out')
                                 <span class="px-4 py-1.5 bg-blue-50 text-blue-700 text-[10px] font-bold rounded-xl border border-blue-200 block animate-pulse">DI LUAR</span>
+                            @elseif($permit->status == 'cancelled')
+                                <span class="px-4 py-1.5 bg-red-50 text-red-700 text-[10px] font-bold rounded-xl border border-red-200 block shadow-sm" title="{{ $permit->cancel_message }}">DIBATALKAN</span>
+                            @elseif($permit->status == 'expired')
+                                <span class="px-4 py-1.5 bg-gray-200 text-gray-700 text-[10px] font-bold rounded-xl border border-gray-300 block shadow-sm" title="{{ $permit->cancel_message }}">KADALUARSA</span>
                             @else
                                 <span class="px-4 py-1.5 bg-gray-50 text-gray-600 text-[10px] font-bold rounded-xl border border-gray-200 block">BELUM KELUAR</span>
+                            @endif
+                        </td>
+
+                        <td class="px-6 py-5 text-center flex justify-center gap-2">
+                            @if($permit->status == 'approved')
+                                @if($permit->user_id == Auth::id())
+                                    <a href="{{ route('hod.permit.print', $permit->id) }}" target="_blank"
+                                            class="px-3 py-1.5 bg-teal-50 text-teal-600 hover:bg-teal-600 hover:text-white rounded text-[10px] font-bold transition-all border border-teal-200 inline-flex items-center gap-1">
+                                        <i class="fa-solid fa-print"></i> Cetak QR
+                                    </a>
+                                @endif
+                                <button @click="cancelModalOpen = true; cancelId = '{{ $permit->id }}'" 
+                                        class="px-3 py-1.5 bg-red-50 text-red-600 hover:bg-red-600 hover:text-white rounded text-[10px] font-bold transition-all border border-red-200 inline-flex items-center gap-1">
+                                    <i class="fa-solid fa-ban"></i> Batal
+                                </button>
+                            @else
+                                <span class="text-[10px] text-gray-400 italic">-</span>
                             @endif
                         </td>
                     </tr>
@@ -290,6 +312,43 @@
         <div class="px-8 py-5 border-t border-gray-100 bg-gray-50/30 overflow-hidden clearfix">
             </div>
     </div>
+
+    <!-- Cancel Modal -->
+    <div x-show="cancelModalOpen" style="display: none;" 
+         class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-200"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0">
+        
+        <div @click.away="cancelModalOpen = false" class="bg-white rounded-2xl w-full max-w-md p-6 shadow-2xl relative transform transition-all">
+            
+            <h3 class="text-xl font-bold mb-2 text-gray-800">
+                <i class="fa-solid fa-ban text-red-500 mr-2"></i> Konfirmasi Pembatalan
+            </h3>
+            <p class="text-sm text-gray-500 mb-6">Silakan isi alasan mengapa izin ini dibatalkan oleh HOD.</p>
+            
+            <form :action="'{{ url('hod/permit') }}/' + cancelId + '/cancel'" method="POST">
+                @csrf
+                @method('PATCH')
+                
+                <div class="mb-6">
+                    <label class="block text-sm font-bold text-gray-700 mb-2">Alasan Pembatalan <span class="text-red-500">*</span></label>
+                    <textarea name="cancel_message" rows="3" required class="w-full rounded-xl border-gray-200 bg-gray-50 p-3 text-sm focus:bg-white focus:ring-2 focus:ring-red-500 outline-none transition" placeholder="Contoh: Karena ada urgensi internal, karyawan tidak jadi keluar..."></textarea>
+                </div>
+
+                <div class="flex justify-end gap-3">
+                    <button type="button" @click="cancelModalOpen = false" class="px-5 py-2.5 rounded-xl bg-gray-100 text-gray-600 font-bold hover:bg-gray-200 text-sm transition">Tutup</button>
+                    <button type="submit" class="bg-red-600 hover:bg-red-700 px-5 py-2.5 rounded-xl text-white font-bold text-sm transition flex items-center gap-2">
+                        <i class="fa-solid fa-ban"></i> Batalkan Izin
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
 </div>
 
 <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>

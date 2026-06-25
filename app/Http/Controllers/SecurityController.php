@@ -11,15 +11,20 @@ class SecurityController extends Controller
 {
     public function index()
     {
-        $todayLogs = Permit::whereDate('time_out', Carbon::today())
-                           ->orWhereDate('time_in', Carbon::today())
-                           ->with(['user.department', 'approver'])
+        $todayLogs = Permit::whereHas('checkLogs', function($q) {
+                               $q->whereDate('log_time', Carbon::today());
+                           })
+                           ->with(['user.department'])
                            ->latest('updated_at')->take(10)->get();
 
         $stats = [
-            'out' => Permit::whereDate('time_out', Carbon::today())->count(),
-            'in'  => Permit::whereDate('time_in', Carbon::today())->count(),
-            'active_outside' => Permit::whereDate('time_out', Carbon::today())->whereNull('time_in')->count(),
+            'out' => Permit::whereHas('checkLogs', function($q) {
+                $q->where('check_type', 'OUT')->whereDate('log_time', Carbon::today());
+            })->count(),
+            'in'  => Permit::whereHas('checkLogs', function($q) {
+                $q->where('check_type', 'IN')->whereDate('log_time', Carbon::today());
+            })->count(),
+            'active_outside' => Permit::where('status', 'out')->count(),
         ];
 
         return view('security.dashboard', compact('todayLogs', 'stats'));
@@ -110,8 +115,12 @@ class SecurityController extends Controller
         if ($request->action == 'OUT') {
             $permit->update([
                 'status' => 'out',
-                'time_out' => $now,
-                'security_out_id' => Auth::id()
+            ]);
+            \App\Models\PermitCheckLog::create([
+                'permit_id' => $permit->id,
+                'security_id' => Auth::id(),
+                'check_type' => 'OUT',
+                'log_time' => $now,
             ]);
             return response()->json(['status' => 'success', 'message' => 'Berhasil! Karyawan telah diverifikasi KELUAR area pabrik.']);
         } 
@@ -130,8 +139,12 @@ class SecurityController extends Controller
             
             $permit->update([
                 'status' => 'returned',
-                'time_in' => $now,
-                'security_in_id' => Auth::id(),
+            ]);
+            \App\Models\PermitCheckLog::create([
+                'permit_id' => $permit->id,
+                'security_id' => Auth::id(),
+                'check_type' => 'IN',
+                'log_time' => $now,
                 'late_minutes' => $lateMinutes
             ]);
             

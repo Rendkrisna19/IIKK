@@ -4,58 +4,116 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Str; // Tambahkan ini di atas
+use Illuminate\Support\Str;
 
 class Permit extends Model
 {
     use HasFactory;
 
-    // 1. Izinkan semua kolom diisi (kecuali ID & Timestamp)
-    // Ini penting agar Permit::create() di controller tidak error.
     protected $guarded = ['id'];
 
-    protected $fillable = [
-        'uuid',
-        'unique_code', // Tambahan baru
-        'user_id',
-        'permit_type',
-        'reason',
-        'target_time_out', // Tambahan baru
-        'target_time_in',  // Tambahan baru
-        'status',
-        'approved_by',
-        'approved_at',
-        'time_out',
-        'time_in',
-        'late_minutes', // Tambahan baru
-        'security_out_id',
-        'security_in_id',
-        'permit_date',  
-        'hod_message',     // (Pastikan ini juga ada untuk fitur pesan HOD tadi)   // <--- Tambahkan ini!
-    ];
     // --- RELASI (HUBUNGAN ANTAR TABEL) ---
-    // Izin ini milik siapa? (Karyawan)
     public function user()
     {
         return $this->belongsTo(User::class, 'user_id');
     }
 
-    // Siapa yang menyetujui? (HOD/Manager)
+    public function type()
+    {
+        return $this->belongsTo(PermitType::class, 'permit_type_id');
+    }
+
+    public function approvals()
+    {
+        return $this->hasMany(PermitApproval::class);
+    }
+
+    public function checkLogs()
+    {
+        return $this->hasMany(PermitCheckLog::class);
+    }
+
+    // --- ACCESSORS (Trik agar view/frontend lama tidak error) ---
+    
+    public function getPermitTypeAttribute()
+    {
+        return $this->type ? strtolower($this->type->name) : 'tugas';
+    }
+
+    public function getApprovedByAttribute()
+    {
+        $approval = $this->approvals()->latest('approved_at')->first();
+        return $approval ? $approval->approver_id : null;
+    }
+
+    public function getApprovedAtAttribute()
+    {
+        $approval = $this->approvals()->latest('approved_at')->first();
+        return $approval ? $approval->approved_at : null;
+    }
+
+    public function getHodMessageAttribute()
+    {
+        $approval = $this->approvals()->latest('approved_at')->first();
+        return $approval ? $approval->hod_message : null;
+    }
+
     public function approver()
     {
-        return $this->belongsTo(User::class, 'approved_by');
+        // Tetap dipertahankan dengan relasi palsu atau langsung ambil dari approval
+        $approval = $this->approvals()->latest('approved_at')->first();
+        if ($approval && $approval->approver_id) {
+            return $this->belongsTo(User::class, 'id', 'id')->where('id', $approval->approver_id);
+        }
+        return $this->belongsTo(User::class, 'id', 'id')->where('id', -1); // Kosong
     }
 
-    // Siapa Security yang mencatat jam keluar?
     public function securityOut()
     {
-        return $this->belongsTo(User::class, 'security_out_id');
+        $log = $this->checkLogs()->where('check_type', 'OUT')->latest('log_time')->first();
+        if ($log && $log->security_id) {
+            return $this->belongsTo(User::class, 'id', 'id')->where('id', $log->security_id);
+        }
+        return $this->belongsTo(User::class, 'id', 'id')->where('id', -1);
     }
 
-    // Siapa Security yang mencatat jam masuk?
     public function securityIn()
     {
-        return $this->belongsTo(User::class, 'security_in_id');
+        $log = $this->checkLogs()->where('check_type', 'IN')->latest('log_time')->first();
+        if ($log && $log->security_id) {
+            return $this->belongsTo(User::class, 'id', 'id')->where('id', $log->security_id);
+        }
+        return $this->belongsTo(User::class, 'id', 'id')->where('id', -1);
+    }
+
+    public function getTimeOutAttribute()
+    {
+        $log = $this->checkLogs()->where('check_type', 'OUT')->latest('log_time')->first();
+        return $log ? $log->log_time : null;
+    }
+
+    public function getTimeInAttribute()
+    {
+        $log = $this->checkLogs()->where('check_type', 'IN')->latest('log_time')->first();
+        return $log ? $log->log_time : null;
+    }
+
+    public function getSecurityOutIdAttribute()
+    {
+        $log = $this->checkLogs()->where('check_type', 'OUT')->latest('log_time')->first();
+        return $log ? $log->security_id : null;
+    }
+
+    public function getSecurityInIdAttribute()
+    {
+        $log = $this->checkLogs()->where('check_type', 'IN')->latest('log_time')->first();
+        return $log ? $log->security_id : null;
+    }
+
+    public function getLateMinutesAttribute()
+    {
+        $log = $this->checkLogs()->where('check_type', 'IN')->latest('log_time')->first();
+        return $log ? $log->late_minutes : null;
     }
 
     protected static function boot()

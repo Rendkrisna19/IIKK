@@ -9,13 +9,23 @@
             <h2 class="text-2xl font-bold text-gray-800">Unit Departemen</h2>
             <p class="text-gray-500 mt-1">Kelola struktur organisasi dan divisi perusahaan.</p>
         </div>
-        <button @click="openModal('create')" 
-            class="bg-mna-dark hover:bg-mna-teal text-white px-6 py-3 rounded-xl text-sm font-bold transition-all shadow-lg shadow-mna-teal/20 flex items-center group">
-            <span class="bg-white/20 p-1 rounded-md mr-3 group-hover:rotate-90 transition-transform">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 4v16m8-8H4"></path></svg>
-            </span>
-            Buat Departemen Baru
-        </button>
+        <div class="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
+            <!-- Search bar -->
+            <div class="relative w-full sm:w-64">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                </div>
+                <input type="text" x-model="search" placeholder="Cari departemen..." class="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-mna-teal/20 focus:border-mna-teal transition-all text-sm">
+            </div>
+
+            <button @click="openModal('create')" 
+                class="bg-mna-dark hover:bg-mna-teal text-white px-6 py-3 rounded-xl text-sm font-bold transition-all shadow-lg shadow-mna-teal/20 flex items-center group w-full sm:w-auto justify-center">
+                <span class="bg-white/20 p-1 rounded-md mr-3 group-hover:rotate-90 transition-transform">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 4v16m8-8H4"></path></svg>
+                </span>
+                Tambah Departemen
+            </button>
+        </div>
     </div>
 
     @if(session('success'))
@@ -35,7 +45,8 @@
 
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         @forelse($departments as $index => $dept)
-            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 relative overflow-hidden group hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
+            <div x-show="matchesSearch('{{ addslashes($dept->name) }}')" 
+                 class="bg-white rounded-2xl shadow-sm border border-gray-100 relative overflow-hidden group hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
                 
                 <div class="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-mna-teal/20 to-mna-dark/5 rounded-full blur-2xl -mr-10 -mt-10 transition-transform group-hover:scale-150"></div>
                 <div class="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-mna-dark to-mna-teal transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-left"></div>
@@ -145,6 +156,14 @@
             isEditMode: false,
             formAction: '',
             formData: { name: '' },
+
+            // Fitur Pencarian
+            search: '',
+
+            matchesSearch(name) {
+                if (this.search === '') return true;
+                return name.toLowerCase().includes(this.search.toLowerCase());
+            },
 
             openModal(type, dept = null) {
                 this.isModalOpen = true;

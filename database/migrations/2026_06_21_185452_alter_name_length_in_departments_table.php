@@ -10,18 +10,19 @@ return new class extends Migration
      * Run the migrations.
      */
     public function up(): void
-{
-    Schema::create('departments', function (Blueprint $table) {
-        $table->id();
-        $table->string('name', 30); // Misal: MIS, HRD, Production
-        $table->timestamps();
-    });
-}
+    {
+        Schema::table('departments', function (Blueprint $table) {
+            $table->string('name', 100)->change();
+        });
+    }
+
     /**
      * Reverse the migrations.
      */
     public function down(): void
     {
-        Schema::dropIfExists('departments');
+        Schema::table('departments', function (Blueprint $table) {
+            //
+        });
     }
 };

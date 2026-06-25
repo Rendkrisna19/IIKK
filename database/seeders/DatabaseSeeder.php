@@ -15,7 +15,10 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->create();
+        \App\Models\PermitType::insert([
+            ['name' => 'tugas', 'is_private' => false, 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'pribadi', 'is_private' => true, 'created_at' => now(), 'updated_at' => now()],
+        ]);
 
         $this->call([
             UserSeeder::class,

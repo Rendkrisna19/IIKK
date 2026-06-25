@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - E-IKK System Wilmar MNA</title>
+    <title>Login - DIGITAL GATE PASS Wilmar MNA</title>
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -88,7 +88,7 @@
                 <div class="text-center mb-6">
                     <img src="https://companieslogo.com/img/orig/F34.SI_BIG-9bf6d287.png?t=1652516639" alt="Wilmar MNA Logo" 
                          class="h-16 mx-auto mb-4 drop-shadow-md brightness-0 invert opacity-90"> <h2 class="text-3xl font-bold text-gray-100 tracking-tight">Login</h2>
-                    <p class="text-gray-200 text-sm mt-1 font-medium">E-IKK System Wilmar MNA</p>
+                    <p class="text-gray-200 text-sm mt-1 font-medium">DIGITAL GATE PASS Wilmar MNA</p>
                 </div>
 
                 @if (session('status'))

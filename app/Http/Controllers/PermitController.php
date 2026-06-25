@@ -59,12 +59,13 @@ class PermitController extends Controller
             $deptAcronym = strtoupper(substr($deptName, 0, 3)); 
         }
         $uniqueCode = "{$sequence}/{$dateStr}/{$userRequestCount}/{$deptAcronym}";
+        $typeId = \App\Models\PermitType::where('name', $request->permit_type)->value('id') ?? 1;
         Permit::create([
             'uuid' => (string) Str::uuid(),
             'unique_code' => $uniqueCode,
             'user_id' => $user->id,
             'permit_date' => $request->permit_date, // Menyimpan tanggal yang dipilih
-            'permit_type' => $request->permit_type,
+            'permit_type_id' => $typeId,
             'reason' => $request->reason,
             'target_time_out' => $request->target_time_out,
             'target_time_in' => $request->permit_type == 'pribadi' ? $request->target_time_in : null,
@@ -80,7 +81,7 @@ class PermitController extends Controller
     public function print(Permit $permit)
     {
         // 1. Validasi Keamanan
-        if($permit->user_id != auth()->id() || $permit->status != 'approved') {
+        if($permit->user_id != auth()->id() || !in_array($permit->status, ['approved', 'out'])) {
             return abort(403, 'Anda tidak memiliki akses mencetak dokumen ini.');
         }
 
@@ -151,10 +152,10 @@ class PermitController extends Controller
             'target_time_in'  => 'required_if:permit_type,pribadi', 
         ]);
 
-        // 3. Update datanya ke database
+        $typeId = \App\Models\PermitType::where('name', $request->permit_type)->value('id') ?? 1;
         $permit->update([
             'permit_date'     => $request->permit_date, // Menyimpan perubahan tanggal
-            'permit_type'     => $request->permit_type,
+            'permit_type_id'  => $typeId,
             'reason'          => $request->reason,
             'target_time_out' => $request->target_time_out,
             'target_time_in'  => $request->permit_type == 'pribadi' ? $request->target_time_in : null,
@@ -178,5 +179,28 @@ class PermitController extends Controller
 
         return redirect()->route('employee.my-permits')
             ->with('success', 'Pengajuan izin berhasil dibatalkan dan dihapus.');
+    }
+
+    /**
+     * Memproses pembatalan izin oleh karyawan dengan alasan
+     */
+    public function cancel(Request $request, $id)
+    {
+        $request->validate([
+            'cancel_message' => 'required|string|max:500'
+        ]);
+
+        $permit = Permit::where('id', $id)
+            ->where('user_id', auth()->id())
+            ->whereIn('status', ['pending', 'approved'])
+            ->firstOrFail();
+
+        $permit->update([
+            'status' => 'cancelled',
+            'cancel_message' => $request->cancel_message,
+        ]);
+
+        return redirect()->route('employee.my-permits')
+            ->with('success', 'Pengajuan izin berhasil dibatalkan.');
     }
 }

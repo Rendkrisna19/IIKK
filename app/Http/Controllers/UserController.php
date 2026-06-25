@@ -10,11 +10,16 @@ use Illuminate\Validation\Rule;
 
 class UserController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        // Kirim data Users DAN Departments ke view index
-        $users = User::with('department')->where('role', '!=', 'admin')->latest()->get();
-        $departments = Department::all(); 
+        $query = User::with('department')->where('role', '!=', 'admin')->latest();
+
+        if ($request->filled('department_id')) {
+            $query->where('department_id', $request->department_id);
+        }
+
+        $users = $query->get();
+        $departments = Department::withCount('users')->get(); 
         
         return view('admin.users.index', compact('users', 'departments'));
     }

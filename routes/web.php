@@ -96,9 +96,14 @@ Route::middleware('auth')->group(function () {
     // Akses: Approval Izin Bawahan
     // =================================================================
     Route::prefix('hod')->name('hod.')->group(function () {
+        Route::get('/permit/create', [App\Http\Controllers\HodController::class, 'create'])->name('permit.create');
+        Route::post('/permit', [App\Http\Controllers\HodController::class, 'store'])->name('permit.store');
+        Route::get('/my-tickets', [App\Http\Controllers\HodController::class, 'myTickets'])->name('my-tickets');
+        Route::get('/permit/{permit}/print', [App\Http\Controllers\PermitController::class, 'print'])->name('permit.print');
         Route::get('/approvals', [App\Http\Controllers\HodController::class, 'approvals'])->name('approvals');
         Route::get('/history', [App\Http\Controllers\HodController::class, 'history'])->name('history');
         Route::patch('/permit/{permit}/update', [App\Http\Controllers\HodController::class, 'updateStatus'])->name('permit.update');
+        Route::patch('/permit/{permit}/cancel', [App\Http\Controllers\HodController::class, 'cancel'])->name('permit.cancel');
         Route::get('/history/export/excel', [App\Http\Controllers\HodController::class, 'exportExcel'])->name('history.export.excel');
     Route::get('/history/export/pdf', [App\Http\Controllers\HodController::class, 'exportPdf'])->name('history.export.pdf');
     });
@@ -116,12 +121,13 @@ Route::middleware('auth')->group(function () {
     // Akses: Buat Izin Baru, Lihat Status Izin Sendiri
     // =================================================================
     Route::prefix('employee')->name('employee.')->group(function () {
+        Route::get('/my-permits', [App\Http\Controllers\PermitController::class, 'index'])->name('my-permits');
         Route::get('/permit/create', [App\Http\Controllers\PermitController::class, 'create'])->name('permit.create');
         Route::post('/permit', [App\Http\Controllers\PermitController::class, 'store'])->name('permit.store');
-        Route::get('/permit/{permit}/print', [App\Http\Controllers\PermitController::class, 'print'])->name('permit.print');
-        Route::get('/my-permits', [App\Http\Controllers\PermitController::class, 'index'])->name('my-permits');
         Route::get('/permit/{id}/edit', [App\Http\Controllers\PermitController::class, 'edit'])->name('permit.edit');
-         Route::put('/permit/{id}', [App\Http\Controllers\PermitController::class, 'update'])->name('permit.update');    
-     Route::delete('/permit/{id}', [App\Http\Controllers\PermitController::class, 'destroy'])->name('permit.destroy');
+        Route::put('/permit/{id}', [App\Http\Controllers\PermitController::class, 'update'])->name('permit.update');
+        Route::delete('/permit/{id}', [App\Http\Controllers\PermitController::class, 'destroy'])->name('permit.destroy');
+        Route::patch('employee/permit/{id}/cancel', [App\Http\Controllers\PermitController::class, 'cancel'])->name('permit.cancel');
+        Route::get('/permit/{permit}/print', [App\Http\Controllers\PermitController::class, 'print'])->name('permit.print');
     });
 });

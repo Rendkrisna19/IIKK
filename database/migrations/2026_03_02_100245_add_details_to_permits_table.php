@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::table('permits', function (Blueprint $table) {
             // Nomor Surat Unik
-            $table->string('unique_code')->nullable()->after('uuid');
+            $table->string('unique_code', 50)->nullable()->after('uuid');
             
             // Jam Rencana Keluar & Masuk
             $table->time('target_time_out')->nullable()->after('reason');

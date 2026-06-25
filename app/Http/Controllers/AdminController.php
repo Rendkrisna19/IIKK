@@ -23,11 +23,42 @@ class AdminController extends Controller
             'total_users' => User::count(),
             'total_permits_today' => Permit::whereDate('created_at', Carbon::today())->count(),
             'total_permits_month' => Permit::whereMonth('created_at', Carbon::now()->month)->count(),
-            'active_out' => Permit::whereNotNull('time_out')->whereNull('time_in')->count(),
+            'active_out' => Permit::where('status', 'out')->count(),
         ];
 
-        // 2. Data Chart: Izin per Departemen (PERBAIKAN DISINI)
-        // Kita harus JOIN tabel 'users' untuk mendapatkan 'department_id'
+        // --- Data Sparkline Real-time ---
+        // A. Sparkline Today (per jam)
+        $todayPermits = Permit::selectRaw('HOUR(created_at) as hour, count(*) as count')
+            ->whereDate('created_at', Carbon::today())
+            ->groupBy('hour')
+            ->pluck('count', 'hour')->toArray();
+        $sparkToday = [];
+        for ($i = 0; $i < 24; $i++) {
+            $sparkToday[] = $todayPermits[$i] ?? 0;
+        }
+
+        // B. Sparkline Month (per hari)
+        $monthPermits = Permit::selectRaw('DAY(created_at) as day, count(*) as count')
+            ->whereMonth('created_at', Carbon::now()->month)
+            ->groupBy('day')
+            ->pluck('count', 'day')->toArray();
+        $sparkMonth = [];
+        $daysInMonth = Carbon::now()->daysInMonth;
+        for ($i = 1; $i <= $daysInMonth; $i++) {
+            $sparkMonth[] = $monthPermits[$i] ?? 0;
+        }
+
+        // C. Sparkline Active (kita ambil 10 hari terakhir yg out)
+        $activeOutPermits = Permit::where('status', 'out')
+            ->selectRaw('DATE(created_at) as date, count(*) as count')
+            ->groupBy('date')
+            ->orderBy('date', 'desc')
+            ->take(10)
+            ->pluck('count', 'date')->toArray();
+        $sparkActive = array_values(array_reverse($activeOutPermits));
+        if (empty($sparkActive)) $sparkActive = [0, 0, 0]; // fallback biar chart nggak error
+
+        // 2. Data Chart: Izin per Departemen
         $deptStats = Permit::join('users', 'permits.user_id', '=', 'users.id')
             ->selectRaw('users.department_id, count(permits.id) as total')
             ->groupBy('users.department_id')
@@ -37,7 +68,6 @@ class AdminController extends Controller
         $chartData = [];
         
         foreach($deptStats as $stat) {
-            // Ambil Nama Departemen berdasarkan ID
             $deptName = Department::find($stat->department_id)->name ?? 'Unknown';
             $chartLabels[] = $deptName;
             $chartData[] = $stat->total;
@@ -50,30 +80,30 @@ class AdminController extends Controller
             Permit::where('status', 'pending')->count(),
         ];
 
-        return view('admin.dashboard', compact('stats', 'chartLabels', 'chartData', 'statusStats'));
+        return view('admin.dashboard', compact('stats', 'chartLabels', 'chartData', 'statusStats', 'sparkToday', 'sparkMonth', 'sparkActive'));
     }
 
     // === FITUR LAPORAN ===
     public function reports(Request $request)
     {
         $departments = Department::all();
-        $permits = [];
+        
+        $query = Permit::with(['user.department', 'approver'])->latest();
 
         // Jika ada filter yang dikirim
-        if ($request->has('start_date')) {
-            $query = Permit::with(['user.department', 'approver'])
-                ->whereBetween('created_at', [$request->start_date . ' 00:00:00', $request->end_date . ' 23:59:59']);
-
-            if ($request->department_id) {
-                $query->whereHas('user', fn($q) => $q->where('department_id', $request->department_id));
-            }
-            
-            if ($request->status) {
-                $query->where('status', $request->status);
-            }
-
-            $permits = $query->latest()->get();
+        if ($request->filled('start_date') && $request->filled('end_date')) {
+            $query->whereBetween('created_at', [$request->start_date . ' 00:00:00', $request->end_date . ' 23:59:59']);
         }
+
+        if ($request->filled('department_id')) {
+            $query->whereHas('user', fn($q) => $q->where('department_id', $request->department_id));
+        }
+        
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        $permits = $query->paginate(20)->withQueryString();
 
         return view('admin.reports.index', compact('departments', 'permits'));
     }

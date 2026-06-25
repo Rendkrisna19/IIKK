@@ -103,19 +103,19 @@
     // 1. Sparkline Today
     new ApexCharts(document.querySelector("#sparkToday"), {
         ...sparklineOptions('#0D9488'),
-        series: [{ data: [12, 14, 2, 47, 42, 15, 47, 75, 65, 19, 14] }], // Ganti dengan data dummy/nyata
+        series: [{ data: @json($sparkToday) }], 
     }).render();
 
     // 2. Sparkline Month
     new ApexCharts(document.querySelector("#sparkMonth"), {
         ...sparklineOptions('#2563EB'),
-        series: [{ data: [45, 52, 38, 24, 33, 26, 21, 20, 15, 10, 30] }],
+        series: [{ data: @json($sparkMonth) }],
     }).render();
 
     // 3. Sparkline Active Out
     new ApexCharts(document.querySelector("#sparkActive"), {
         ...sparklineOptions('#F59E0B'),
-        series: [{ data: [5, 10, 8, 15, 12, 10, 14, 18, 11, 9, 15] }],
+        series: [{ data: @json($sparkActive) }],
     }).render();
 
     // 4. Bar Chart: Dept

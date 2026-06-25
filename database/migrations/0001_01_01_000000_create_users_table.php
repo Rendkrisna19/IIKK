@@ -13,13 +13,13 @@ return new class extends Migration
     {
        Schema::create('users', function (Blueprint $table) {
         $table->id();
-        $table->string('name');
-        $table->string('nik')->unique()->nullable(); // Dari gambar form
-        $table->string('email')->unique();
-        $table->string('password');
+        $table->string('name', 25);
+        $table->string('nik', 10)->unique()->nullable(); // Dari gambar form
+        $table->string('email', 30)->unique();
+        $table->string('password', 60);
         // Role: admin, hod, employee, security
         $table->enum('role', ['admin', 'hod', 'employee', 'security'])->default('employee');
-        $table->string('position')->nullable(); // Jabatan
+        $table->string('position', 100)->nullable(); // Jabatan
         $table->foreignId('department_id')->nullable()->constrained('departments')->nullOnDelete();
         $table->rememberToken();
         $table->timestamps();

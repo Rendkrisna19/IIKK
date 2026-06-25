@@ -14,11 +14,11 @@
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div>
                     <label class="text-xs font-bold text-gray-500">Tanggal Mulai</label>
-                    <input type="date" name="start_date" value="{{ request('start_date') }}" required class="w-full border-gray-300 rounded-lg text-sm">
+                    <input type="date" name="start_date" value="{{ request('start_date') }}" class="w-full border-gray-300 rounded-lg text-sm">
                 </div>
                 <div>
                     <label class="text-xs font-bold text-gray-500">Tanggal Selesai</label>
-                    <input type="date" name="end_date" value="{{ request('end_date') }}" required class="w-full border-gray-300 rounded-lg text-sm">
+                    <input type="date" name="end_date" value="{{ request('end_date') }}" class="w-full border-gray-300 rounded-lg text-sm">
                 </div>
                 <div>
                     <label class="text-xs font-bold text-gray-500">Departemen</label>
@@ -35,32 +35,31 @@
                         <option value="">Semua Status</option>
                         <option value="approved" {{ request('status') == 'approved' ? 'selected' : '' }}>Disetujui</option>
                         <option value="rejected" {{ request('status') == 'rejected' ? 'selected' : '' }}>Ditolak</option>
-                        <option value="out" {{ request('status') == 'out' ? 'selected' : '' }}>Sedang Keluar</option>
                         <option value="returned" {{ request('status') == 'returned' ? 'selected' : '' }}>Selesai</option>
+                        <option value="expired" {{ request('status') == 'expired' ? 'selected' : '' }}>Kadaluarsa</option>
+                        <option value="cancelled" {{ request('status') == 'cancelled' ? 'selected' : '' }}>Dibatalkan</option>
                     </select>
                 </div>
             </div>
             
             <div class="mt-4 flex gap-3">
                 <button type="submit" class="bg-mna-dark text-white px-6 py-2 rounded-lg text-sm font-bold hover:bg-mna-teal transition">
-                    Tampilkan Data
+                    Filter Data
                 </button>
-                @if(request('start_date'))
-                    <a href="{{ route('admin.reports.excel', request()->all()) }}" class="bg-green-600 text-white px-6 py-2 rounded-lg text-sm font-bold hover:bg-green-700 transition flex items-center gap-2">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                        Export Excel
-                    </a>
-                    <a href="{{ route('admin.reports.pdf', request()->all()) }}" target="_blank" class="bg-red-600 text-white px-6 py-2 rounded-lg text-sm font-bold hover:bg-red-700 transition flex items-center gap-2">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
-                        Cetak PDF
-                    </a>
-                @endif
+                <a href="{{ route('admin.reports.excel', request()->all()) }}" class="bg-green-600 text-white px-6 py-2 rounded-lg text-sm font-bold hover:bg-green-700 transition flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                    Export Excel
+                </a>
+                <a href="{{ route('admin.reports.pdf', request()->all()) }}" target="_blank" class="bg-red-600 text-white px-6 py-2 rounded-lg text-sm font-bold hover:bg-red-700 transition flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+                    Cetak PDF
+                </a>
             </div>
         </form>
     </div>
 
-    @if(count($permits) > 0)
-    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+    @if($permits->count() > 0)
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mb-6">
         <table class="w-full text-left border-collapse">
             <thead class="bg-gray-50 text-xs uppercase text-gray-500">
                 <tr>
@@ -81,7 +80,10 @@
                     </td>
                     <td class="p-4">{{ $permit->reason }}</td>
                     <td class="p-4">
-                        <span class="px-2 py-1 rounded text-xs font-bold {{ $permit->status == 'approved' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700' }}">
+                        <span class="px-2 py-1 rounded text-xs font-bold 
+                            {{ $permit->status == 'approved' ? 'bg-green-100 text-green-700' : 
+                               ($permit->status == 'expired' ? 'bg-gray-200 text-gray-700' : 
+                               ($permit->status == 'cancelled' || $permit->status == 'rejected' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-700')) }}">
                             {{ ucfirst($permit->status) }}
                         </span>
                     </td>
@@ -94,9 +96,13 @@
             </tbody>
         </table>
     </div>
-    @elseif(request('start_date'))
+    
+    <div>
+        {{ $permits->links() }}
+    </div>
+    @else
         <div class="text-center p-8 bg-white rounded-2xl border border-gray-100 text-gray-500">
-            Tidak ada data ditemukan untuk filter ini.
+            Tidak ada data izin yang ditemukan.
         </div>
     @endif
 

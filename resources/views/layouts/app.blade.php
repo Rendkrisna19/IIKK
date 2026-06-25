@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>@yield('title', 'E-IKK System') - PT MNA</title>
+    <title>@yield('title', 'DIGITAL GATE PASS') - PT MNA</title>
     <link rel="icon" type="image/png" href="{{ asset('assets/images/mna-logo.png') }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -81,7 +81,7 @@
             <div class="flex items-center gap-3 px-8 h-20 border-b border-gray-50 shrink-0 bg-white">
                 <img class="w-10 h-auto" src="https://companieslogo.com/img/orig/F34.SI_BIG-9bf6d287.png?t=1652516639" alt="Wilmar">
                 <div>
-                    <h1 class="text-xl font-extrabold text-mna-dark tracking-tight leading-none">E-IKK</h1>
+                    <h1 class="text-xl font-extrabold text-mna-dark tracking-tight leading-none">DIGITAL GATE PASS</h1>
                     <p class="text-[10px] text-gray-400 font-bold uppercase tracking-[0.2em] mt-0.5">Wilmar Group</p>
                 </div>
             </div>
@@ -131,6 +131,14 @@
                 <div>
                     <p class="px-4 text-[10px] font-extrabold text-gray-400 uppercase tracking-widest mb-3">Management</p>
                     <div class="space-y-1">
+                        <a href="{{ route('hod.permit.create') }}" class="flex items-center justify-between px-4 py-3 text-sm font-semibold rounded-xl transition-all duration-200 {{ request()->routeIs('hod.permit.create') ? 'bg-mna-teal text-white shadow-md shadow-mna-teal/20' : 'text-gray-500 hover:bg-mna-light hover:text-mna-teal' }}">
+                            <div class="flex items-center gap-3">
+                                <i class="fas fa-plus-circle w-5 text-center"></i> Buat Izin Pribadi
+                            </div>
+                        </a>
+                        <a href="{{ route('hod.my-tickets') }}" class="flex items-center gap-3 px-4 py-3 text-sm font-semibold rounded-xl transition-all duration-200 {{ request()->routeIs('hod.my-tickets') ? 'bg-mna-teal text-white shadow-md shadow-mna-teal/20' : 'text-gray-500 hover:bg-mna-light hover:text-mna-teal' }}">
+                            <i class="fas fa-qrcode w-5 text-center"></i> Tiket Izin Saya
+                        </a>
                         <a href="{{ route('hod.approvals') }}" class="flex items-center justify-between px-4 py-3 text-sm font-semibold rounded-xl transition-all duration-200 {{ request()->routeIs('hod.approvals') ? 'bg-mna-teal text-white shadow-md shadow-mna-teal/20' : 'text-gray-500 hover:bg-mna-light hover:text-mna-teal' }}">
                             <div class="flex items-center gap-3">
                                 <i class="fas fa-check-double w-5 text-center"></i> Persetujuan

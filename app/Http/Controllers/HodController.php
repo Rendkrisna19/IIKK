@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Auth;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\PermitHistoryExport;
+use Illuminate\Support\Str;
 
 class HodController extends Controller
 {
@@ -38,6 +39,70 @@ class HodController extends Controller
                                 ->get();
 
         return view('hod.dashboard', compact('stats', 'pendingPermits'));
+    }
+
+    public function create()
+    {
+        return view('hod.permits.create');
+    }
+
+    public function store(Request $request)
+    {
+        $request->validate([
+            'permit_date' => 'required|date',
+            'permit_type' => 'required|in:tugas,pribadi',
+            'reason' => 'required|string|max:255',
+            'target_time_out' => 'required',
+            'target_time_in' => 'required_if:permit_type,pribadi', 
+        ]);
+        
+        $user = Auth::user();
+        $todayCount = Permit::whereDate('created_at', now()->toDateString())->count() + 1;
+        $sequence = str_pad($todayCount, 3, '0', STR_PAD_LEFT); 
+        $dateStr = now()->format('dmY'); 
+        $userRequestCount = Permit::where('user_id', $user->id)->count() + 1; 
+        
+        $deptName = $user->department->name ?? 'NA';
+        $words = explode(' ', $deptName);
+        $deptAcronym = '';
+        foreach ($words as $w) { $deptAcronym .= strtoupper($w[0]); }
+        if(strlen($deptAcronym) < 2) {
+            $deptAcronym = strtoupper(substr($deptName, 0, 3)); 
+        }
+        $uniqueCode = "{$sequence}/{$dateStr}/{$userRequestCount}/{$deptAcronym}";
+        
+        $typeId = \App\Models\PermitType::where('name', $request->permit_type)->value('id') ?? 1;
+        $permit = Permit::create([
+            'uuid' => (string) Str::uuid(),
+            'unique_code' => $uniqueCode,
+            'user_id' => $user->id,
+            'permit_date' => $request->permit_date,
+            'permit_type_id' => $typeId,
+            'reason' => $request->reason,
+            'target_time_out' => $request->target_time_out,
+            'target_time_in' => $request->permit_type == 'pribadi' ? $request->target_time_in : null,
+            'status' => 'approved',
+        ]);
+        
+        \App\Models\PermitApproval::create([
+            'permit_id' => $permit->id,
+            'approver_id' => $user->id,
+            'status' => 'approved',
+            'hod_message' => null,
+            'approved_at' => now(),
+        ]);
+        
+        return redirect()->route('hod.my-tickets')
+            ->with('success', 'Izin pribadi Anda berhasil dibuat dan langsung disetujui.');
+    }
+
+    public function myTickets()
+    {
+        $permits = Permit::where('user_id', Auth::id())
+                        ->latest()
+                        ->get();
+
+        return view('hod.permits.tickets', compact('permits'));
     }
 
     public function approvals()
@@ -125,9 +190,14 @@ class HodController extends Controller
         // 3. Update Data (Tambahkan hod_message)
         $permit->update([
             'status' => $request->status,
-            'approved_by' => Auth::id(), // ID HOD yang login
-            'approved_at' => now(),      // Waktu saat ini
-            'hod_message' => $request->hod_message, // Simpan pesan/revisi dari HOD
+        ]);
+        
+        \App\Models\PermitApproval::create([
+            'permit_id' => $permit->id,
+            'approver_id' => Auth::id(),
+            'status' => $request->status,
+            'hod_message' => $request->hod_message,
+            'approved_at' => now(),
         ]);
 
         // 4. Pesan Feedback
@@ -138,5 +208,28 @@ class HodController extends Controller
         return redirect()->back()->with('success', $message);
     }
 
-    
+    /**
+     * Proses Pembatalan Izin oleh HOD
+     */
+    public function cancel(Request $request, Permit $permit)
+    {
+        $request->validate([
+            'cancel_message' => 'required|string|max:500'
+        ]);
+
+        if($permit->user->department_id != Auth::user()->department_id) {
+            return abort(403, 'Akses Ditolak. Karyawan beda departemen.');
+        }
+
+        if ($permit->status != 'approved') {
+            return back()->with('error', 'Hanya pengajuan yang telah disetujui yang dapat dibatalkan.');
+        }
+
+        $permit->update([
+            'status' => 'cancelled',
+            'cancel_message' => $request->cancel_message,
+        ]);
+
+        return redirect()->back()->with('success', 'Pengajuan izin berhasil dibatalkan.');
+    }
 }
